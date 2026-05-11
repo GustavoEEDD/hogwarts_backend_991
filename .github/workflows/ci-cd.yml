@@ -1,0 +1,53 @@
+name: Pipeline CI/CD (Build, Test and Push Docker Image) para AAEE
+
+# El flujo se activa con cada push request a la rama 'main'
+on:
+  push:
+    branches: [ "main" ]
+
+# Permisos
+permissions:
+  contents: read
+  packages: write
+
+# Tareas del Workflow
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Descarga el código del repositorio en el corredor de GitHub
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Configura el entorno (JDK/Maven para Tests previos)
+      - name: Configuracion TEST
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 23
+          cache: maven
+
+      # 3. Construye el proyecto
+      - name: Compilar con Maven
+        run: mvn clean package
+
+      # 4. Convertir nombre del repositorio a minúsculas para que no de error
+      - name: Set lowercase repo name
+        run: echo "REPO_LOWER=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      # 5. Construir la Imagen Docker usando el Dockerfile
+      - name: Build Docker image
+        run: docker build -t ghcr.io/${{ env.REPO_LOWER }}:latest .
+
+      # 6. Login y Push a GHCR
+      - name: Push Docker image
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 7. Push Imagen
+      - name: Push image
+        run: docker push ghcr.io/${{ env.REPO_LOWER }}:latest

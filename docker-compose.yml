@@ -1,0 +1,10 @@
+services:
+  app:
+    # IMPORTANTE: Cambia 'tu_usuario' por tu nombre de usuario de GitHub
+    image: ghcr.io/GustavoEEDD/hogwarts_backend_991:latest
+    container_name: aaee_hogwarts_app_gdr
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
